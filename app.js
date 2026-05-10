@@ -5,19 +5,77 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/" && req.method === "GET") {
 
+    let messages = [];
+
+    if (fs.existsSync("messages.txt")) {
+
+      const fileData = fs.readFileSync("messages.txt", "utf8");
+
+      messages = fileData
+        .split("\n")
+        .filter(msg => msg.trim() !== "");
+    }
+
+    messages.reverse();
+
     res.writeHead(200, { "Content-Type": "text/html" });
 
     res.write(`
       <html>
         <head>
-          <title>Node Form</title>
-        </head>
-        <body>
-          <h1>User Form</h1>
+          <title>Message App</title>
 
-          <form action="/submit" method="POST">
-            <input type="text" name="username" placeholder="Enter Name" />
-            <button type="submit">Submit</button>
+          <style>
+            body{
+              font-family: Arial;
+              padding: 30px;
+            }
+
+            form{
+              margin-top: 20px;
+            }
+
+            input{
+              padding: 10px;
+              width: 250px;
+            }
+
+            button{
+              padding: 10px 20px;
+              cursor: pointer;
+            }
+
+            .message{
+              background: #f1f1f1;
+              padding: 10px;
+              margin: 10px 0;
+              border-radius: 5px;
+            }
+          </style>
+
+        </head>
+
+        <body>
+
+          <h1>Messages</h1>
+
+          ${messages.map(msg => `
+            <div class="message">${msg}</div>
+          `).join("")}
+
+          <form action="/message" method="POST">
+
+            <input 
+              type="text" 
+              name="message" 
+              placeholder="Enter message"
+              required
+            />
+
+            <button type="submit">
+              Send
+            </button>
+
           </form>
 
         </body>
@@ -27,7 +85,7 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  if (req.url === "/submit" && req.method === "POST") {
+  if (req.url === "/message" && req.method === "POST") {
 
     const body = [];
 
@@ -39,9 +97,11 @@ const server = http.createServer((req, res) => {
 
       const parsedBody = Buffer.concat(body).toString();
 
-      const message = parsedBody.split("=")[1];
+      const message = decodeURIComponent(
+        parsedBody.split("=")[1]
+      );
 
-      fs.writeFileSync("message.txt", message);
+      fs.appendFileSync("messages.txt", message + "\n");
 
       res.statusCode = 302;
       res.setHeader("Location", "/");
@@ -53,7 +113,9 @@ const server = http.createServer((req, res) => {
   }
 
   res.writeHead(404, { "Content-Type": "text/html" });
+
   res.write("<h1>Page Not Found</h1>");
+
   res.end();
 });
 
